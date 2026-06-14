@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jogo das Direções Cardeais</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Variáveis de cores para consistência visual */
+        :root {
+            --bg-sky: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.5);
+            --primary-blue: #0284c7;
+            --accent-orange: #f97316;
+            --success-green: #22c55e;
+            --error-red: #ef4444;
+            --text-dark: #0f172a;
+            
+            /* Cores das direções */
+            --color-north: #0284c7;
+            --color-south: #10b981;
+            --color-east: #f43f5e;
+            --color-west: #eab308;
+        }
+
+        /* Estilo fundamental para evitar rolagem de tela em qualquer dispositivo */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-sky);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 6px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Container principal do jogo - Centralizado e restrito à viewport */
+        #app-container {
+            width: 100%;
+            max-width: 480px;
+            height: calc(100vh - 12px);
+            height: calc(100dvh - 12px);
+            max-height: 820px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 3px solid var(--border-glass);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 6px;
+            position: relative;
+        }
+
+        /* Barra Superior (Placar e Controles de Sistema) */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 4px;
+            border-bottom: 2px dashed rgba(2, 132, 199, 0.15);
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .header-title-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: var(--primary-blue);
+            font-size: clamp(1.05rem, 4.2vw, 1.3rem);
+            margin: 0;
+            text-align: left;
+            line-height: 1.1;
+        }
+
+        .system-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        /* Botões de controle redondos */
+        .btn-icon {
+            width: clamp(32px, 8.5vw, 36px);
+            height: clamp(32px, 8.5vw, 36px);
+            border-radius: 50%;
+            border: none;
+            background: white;
+            color: var(--primary-blue);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.08);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-icon:active {
+            transform: scale(0.95);
+        }
+
+        /* Placar de Pontos */
+        #score-panel {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: 'Fredoka One', cursive;
+            font-size: clamp(0.85rem, 3.8vw, 1.05rem);
+            color: var(--accent-orange);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* Cronômetro Badge */
+        #timer-panel {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: 'Fredoka One', cursive;
+            font-size: clamp(0.85rem, 3.8vw, 1.05rem);
+            color: #475569;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.3s;
+        }
+
+        #timer-panel.critical {
+            color: var(--error-red);
+            border-color: var(--error-red);
+            animation: pulse-border 0.5s infinite alternate;
+        }
+
+        /* Painel Central de Orientação e Instrução */
+        #instruction-panel {
+            background: #f0f9ff;
+            border-left: 5px solid var(--primary-blue);
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: clamp(0.9rem, 3.5vw, 1.05rem);
+            font-weight: 800;
+            color: var(--text-dark);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Tabuleiro do Jogo */
+        #game-board {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 340px;
+            margin: 0 auto;
+            background-color: #38bdf8;
+            background-image: radial-gradient(#7dd3fc 1px, transparent 1px), radial-gradient(#7dd3fc 1px, #38bdf8 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            border-radius: 20px;
+            border: 6px solid #0284c7;
+            box-shadow: inset 0 8px 16px rgba(0,0,0,0.15), 0 6px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Desenho decorativo da Rosa dos Ventos no fundo */
+        .compass-rose {
+            position: absolute;
+            width: 60%;
+            height: 60%;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Elemento do Sol */
+        #sun {
+            width: clamp(48px, 13vw, 60px);
+            height: clamp(48px, 13vw, 60px);
+            background: radial-gradient(circle, #fef08a 0%, #facc15 60%, #eab308 100%);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 15px #facc15, 0 0 30px #facc15, 0 0 45px rgba(250, 204, 21, 0.4);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+        }
+
+        /* Zonas de soltar (Drop Zones) */
+        .position-container {
+            position: absolute;
+            z-index: 3;
+        }
+        
+        #top-container { top: 12px; left: 50%; transform: translateX(-50%); }
+        #bottom-container { bottom: 12px; left: 50%; transform: translateX(-50%); }
+        #left-container { left: 12px; top: 50%; transform: translateY(-50%); }
+        #right-container { right: 12px; top: 50%; transform: translateY(-50%); }
+
+        .drop-zone {
+            width: clamp(62px, 17vw, 74px);
+            height: clamp(62px, 17vw, 74px);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            border: 3px dashed rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        .drop-zone:hover {
+            border-color: white;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .drop-zone.drag-over {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.08);
+            border-style: solid;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+        }
+
+        /* Letras Arrastáveis/Clicáveis */
+        .letter {
+            width: clamp(50px, 14vw, 60px);
+            height: clamp(50px, 14vw, 60px);
+            border-radius: 14px;
+            cursor: grab;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: clamp(1.6rem, 6.5vw, 2.1rem);
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.35);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.22);
+            position: relative;
+        }
+
+        .letter:active {
+            cursor: grabbing;
+        }
+        
+        /* Cores exclusivas e bonitas das direções */
+        .north-color { background: linear-gradient(135deg, #38bdf8, var(--color-north)); border: 3px solid #0284c7; }
+        .south-color { background: linear-gradient(135deg, #34d399, var(--color-south)); border: 3px solid #047857; }
+        .east-color { background: linear-gradient(135deg, #fb7185, var(--color-east)); border: 3px solid #be123c; }
+        .west-color { background: linear-gradient(135deg, #fde047, var(--color-west)); border: 3px solid #a16207; }
+
+        /* Estado Selecionado (Toque/Clique para Celular) */
+        .letter.selected {
+            animation: pulse-glow 1.2s infinite alternate;
+            transform: scale(1.1) translateY(-6px);
+            z-index: 10;
+        }
+
+        .letter.placed {
+            cursor: default;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        /* Efeito de etiqueta para identificar a direção quando colocada */
+        .placed::after {
+            content: attr(data-dir);
+            position: absolute;
+            bottom: -3px;
+            font-size: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            background: rgba(0,0,0,0.6);
+            padding: 1px 4px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Curral de Letras (Onde ficam as letras aguardando ação) */
+        #item-pen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 6px;
+            background: rgba(244, 162, 97, 0.15);
+            border-radius: 16px;
+            border: 3px solid #f4a261;
+            min-height: clamp(68px, 18vw, 80px);
+            margin: 0 auto;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        /* Rodapé de Feedback & Ação */
+        footer {
+            min-height: 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #feedback-text {
+            font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+            font-weight: 800;
+            color: var(--text-dark);
+            margin: 0;
+            text-align: center;
+            min-height: 22px;
+            transition: all 0.3s ease;
+        }
+
+        .feedback-correct { color: var(--success-green) !important; animation: pop 0.4s ease; }
+        .feedback-error { color: var(--error-red) !important; animation: shake 0.4s ease; }
+
+        /* Botão Próximo/Jogar Novamente */
+        #control-button {
+            font-family: 'Fredoka One', cursive;
+            padding: 8px 20px;
+            font-size: clamp(0.9rem, 4vw, 1.05rem);
+            color: white;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: none;
+        }
+        
+        #control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(234, 88, 12, 0.4);
+        }
+
+        #control-button:active {
+            transform: translateY(1px);
+        }
+
+        #control-button.next-round {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+        }
+
+        /* Modal Base e Variantes (Como Jogar, Configurações e Fim de Tempo) */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 380px;
+            border-radius: 20px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            text-align: left;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-family: 'Fredoka One', cursive;
+            color: var(--primary-blue);
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: #334155;
+            margin-bottom: 16px;
+        }
+
+        .modal-body ul {
+            padding-left: 18px;
+            margin: 6px 0;
+        }
+
+        .modal-body li {
+            margin-bottom: 6px;
+        }
+
+        .btn-modal-close {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+        }
+
+        .btn-modal-close:hover {
+            background: #0369a1;
+        }
+
+        /* Estilos do Modal de Configurações */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+            margin-bottom: 4px;
+        }
+
+        .setting-label {
+            font-weight: 800;
+            color: #1e293b;
+            font-size: 0.95rem;
+        }
+
+        /* Toggle Switch Customizado */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success-green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Seletor de Tempo */
+        .time-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .time-btn {
+            padding: 6px;
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.85rem;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .time-btn.active {
+            background: #e0f2fe;
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        /* Input Customizado para minutos */
+        .custom-time-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .custom-time-input {
+            width: 70px;
+            padding: 4px 8px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.9rem;
+            color: var(--primary-blue);
+            text-align: center;
+        }
+
+        /* Modal Fim de Tempo */
+        .timeout-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn-timeout-action {
+            padding: 10px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-restart-action {
+            background: var(--accent-orange);
+            color: white;
+        }
+
+        .btn-restart-action:hover {
+            background: #ea580c;
+        }
+
+        .btn-extend-action {
+            background: #e0f2fe;
+            color: var(--primary-blue);
+            border: 2px dashed var(--primary-blue);
+        }
+
+        .btn-extend-action:hover {
+            background: #bae6fd;
+        }
+
+        /* --- ANIMAÇÕES --- */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(255,255,255,0.6); outline: 3px solid rgba(255,255,255,0.6); }
+            100% { box-shadow: 0 0 24px rgba(255,255,255,1); outline: 4px solid #fff; }
+        }
+
+        @keyframes pulse-border {
+            0% { transform: scale(1); box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); }
+            100% { transform: scale(1.05); box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.9); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .pop-animation {
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- Barra superior com placar e botões essenciais -->
+        <header>
+            <div class="header-title-area">
+                <h1>Cardinalia</h1>
+                <div style="font-size: 10px; font-weight: 800; color: #64748b; margin-top: 1px;">DIREÇÕES CARDEAIS</div>
+            </div>
+            
+            <div class="system-controls">
+                <div id="score-panel" title="Sua Pontuação">
+                    <span>⭐</span>
+                    <span id="score">0</span><span style="font-size: 0.75rem; color:#94a3b8">/10</span>
+                </div>
+
+                <!-- Cronômetro de Contagem Regressiva -->
+                <div id="timer-panel" title="Tempo Restante">
+                    <span>⏱️</span>
+                    <span id="timer-display">10:00</span>
+                </div>
+                
+                <!-- Botão Ativar/Desativar Som -->
+                <button class="btn-icon" id="sound-btn" title="Som">
+                    <svg id="sound-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                </button>
+
+                <!-- Botão Configurações -->
+                <button class="btn-icon" id="settings-btn" title="Configurações de Tempo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                
+                <!-- Botão Reiniciar Partida -->
+                <button class="btn-icon" id="restart-btn" title="Recomeçar Partida">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                </button>
+
+                <!-- Botão de Ajuda -->
+                <button class="btn-icon" id="help-btn" title="Como Jogar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Instruções pedagógicas diretas -->
+        <div id="instruction-panel">
+            <span>Preparando o jogo...</span>
+        </div>
+
+        <!-- Tabuleiro do Jogo Centralizado -->
+        <div id="game-board">
+            <!-- Rosa dos ventos de fundo decorativa -->
+            <svg class="compass-rose" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3"/>
+                <path d="M50 5 L50 95 M5 50 L95 50" stroke="currentColor" stroke-width="1.5"/>
+                <!-- Pontas da estrela guia -->
+                <polygon points="50,15 54,46 50,50 46,46" fill="currentColor"/>
+                <polygon points="50,85 54,54 50,50 46,54" fill="currentColor"/>
+                <polygon points="15,50 46,46 50,50 46,54" fill="currentColor"/>
+                <polygon points="85,50 54,46 50,50 54,54" fill="currentColor"/>
+            </svg>
+
+            <!-- Astro de Referência (Sol) -->
+            <div id="sun" title="Sol - Sua referência direcional! ☀️">☀️</div>
+            
+            <!-- Zonas de Destino -->
+            <div class="position-container" id="top-container">
+                <div class="drop-zone" id="top" title="Zona Superior"></div>
+            </div>
+            
+            <div class="position-container" id="bottom-container">
+                <div class="drop-zone" id="bottom" title="Zona Inferior"></div>
+            </div>
+
+            <div class="position-container" id="left-container">
+                <div class="drop-zone" id="left" title="Zona Esquerda"></div>
+            </div>
+
+            <div class="position-container" id="right-container">
+                <div class="drop-zone" id="right" title="Zona Direita"></div>
+            </div>
+        </div>
+
+        <!-- Área de Seleção das Letras (Curral) -->
+        <div id="item-pen"></div>
+
+        <!-- Rodapé de Feedback dinâmico e Botões de rodada -->
+        <footer>
+            <p id="feedback-text"></p>
+            <button id="control-button"></button>
+        </footer>
+    </div>
+
+    <!-- Modal Informativo: Como Jogar -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">
+                <span style="font-size: 1.3rem;">☀️</span> Como Jogar?
+            </h3>
+            <div class="modal-body">
+                <p>Neste jogo, encaixe as letras nas posições certas seguindo as orientações cardeais (<strong>NORTE, SUL, LESTE, OESTE</strong>).</p>
+                <p><strong>A Pegadinha do Sol:</strong></p>
+                <ul>
+                    <li>O Sol se move a cada rodada e é seu referencial espacial!</li>
+                    <li>Por exemplo: Se o Sol estiver na <strong>DIREITA</strong>, lá é o <strong>LESTE</strong>. A partir disso, ache o Oeste (lado oposto ao Sol), o Norte (esquerda do Sol) e o Sul (direita do Sol).</li>
+                </ul>
+                <p><strong>Dois modos para jogar:</strong></p>
+                <ul>
+                    <li><strong>No PC:</strong> Arraste e solte a letra até a caixa transparente.</li>
+                    <li><strong>No celular:</strong> Toque primeiro na letra (ela começará a piscar) e dê um toque na caixa de destino!</li>
+                </ul>
+            </div>
+            <button class="btn-modal-close" id="modal-close-btn">Entendi, vamos jogar!</button>
+        </div>
+    </div>
+
+    <!-- Modal de Configurações (Configurações do Cronômetro) -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">
+                <span>⚙️</span> Configurações de Jogo
+            </h3>
+            <div class="modal-body">
+                <div class="setting-row">
+                    <span class="setting-label">Ativar Tempo Regressivo</span>
+                    <label class="switch">
+                        <input type="checkbox" id="timer-toggle-switch" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div id="timer-config-options">
+                    <span class="setting-label" style="display:block; margin-bottom: 4px;">Duração da Partida</span>
+                    <div class="time-options">
+                        <button class="time-btn" data-time="60">1 Min</button>
+                        <button class="time-btn" data-time="180">3 Min</button>
+                        <button class="time-btn" data-time="300">5 Min</button>
+                        <button class="time-btn active" data-time="600">10 Min</button>
+                        <button class="time-btn" data-time="custom">Outro</button>
+                    </div>
+                    
+                    <div class="custom-time-area" id="custom-time-area" style="display: none;">
+                        <span class="setting-label">Minutos personalizados:</span>
+                        <input type="number" id="custom-minutes-input" class="custom-time-input" min="1" max="60" value="10">
+                    </div>
+                </div>
+
+                <div class="setting-row" style="margin-top: 15px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                    <span class="setting-label">Efeitos de Som</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-toggle-switch" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button class="btn-modal-close" id="settings-save-btn">Salvar & Aplicar</button>
+        </div>
+    </div>
+
+    <!-- Modal Fim de Tempo -->
+    <div class="modal" id="timeout-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 class="modal-title" style="justify-content: center; color: var(--error-red);">
+                <span>⏰</span> Tempo Esgotado!
+            </h3>
+            <div class="modal-body">
+                <p style="font-size: 1.05rem; font-weight: 700;">Que pena! O tempo regulamentar acabou.</p>
+                <p>Mas não desanime, o aprendizado é um processo constante!</p>
+            </div>
+            <div class="timeout-options">
+                <button class="btn-timeout-action btn-restart-action" id="btn-timeout-restart">
+                    <span>🔄</span> Reiniciar Partida
+                </button>
+                <button class="btn-timeout-action btn-extend-action" id="btn-timeout-extend">
+                    <span>➕</span> Me dá mais +30 segundos!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GERENCIADOR DE ÁUDIO (Web Audio API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'correct') {
+                // Toque agudo duplo alegre
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'incorrect') {
+                // Som baixo de alerta/erro
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'victory') {
+                // Melodia curta de vitória
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    g.gain.setValueAtTime(0.1, now + idx * 0.08);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+                    o.start(now + idx * 0.08);
+                    o.stop(now + idx * 0.08 + 0.25);
+                });
+            } else if (type === 'tap') {
+                // Clique rápido de interface
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'tick') {
+                // Som sutil de relógio correndo (Tensão)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            } else if (type === 'timeout') {
+                // Buzzer de fim de tempo
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.setValueAtTime(110, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        // --- ELEMENTOS DO DOM ---
+        const instructionEl = document.getElementById('instruction-panel');
+        const feedbackEl = document.getElementById('feedback-text');
+        const controlButton = document.getElementById('control-button');
+        const sunEl = document.getElementById('sun');
+        const itemPen = document.getElementById('item-pen');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const scoreEl = document.getElementById('score');
+        const soundBtn = document.getElementById('sound-btn');
+        const soundIcon = document.getElementById('sound-icon');
+        const restartBtn = document.getElementById('restart-btn');
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // Novos elementos da Configuração e Cronômetro
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsSaveBtn = document.getElementById('settings-save-btn');
+        const timerToggleSwitch = document.getElementById('timer-toggle-switch');
+        const timerConfigOptions = document.getElementById('timer-config-options');
+        const customTimeArea = document.getElementById('custom-time-area');
+        const customMinutesInput = document.getElementById('custom-minutes-input');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerPanel = document.getElementById('timer-panel');
+        const soundToggleSwitch = document.getElementById('sound-toggle-switch');
+        
+        // Modal Fim de Tempo
+        const timeoutModal = document.getElementById('timeout-modal');
+        const btnTimeoutRestart = document.getElementById('btn-timeout-restart');
+        const btnTimeoutExtend = document.getElementById('btn-timeout-extend');
+
+        // --- CONSTANTES DE LOGÍSTICA ---
+        const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const MAX_SCORE = 10;
+        const logicalPositionToName = {
+            NORTE: 'no NORTE', SUL: 'no SUL',
+            LESTE: 'no LESTE', OESTE: 'no OESTE'
+        };
+        const logicalPositionToColorClass = {
+            NORTE: 'north-color', SUL: 'south-color',
+            LESTE: 'east-color', OESTE: 'west-color'
+        };
+
+        // --- ESTADO DO JOGO ---
+        let score = 0;
+        let usedLetters = new Set();
+        let roundChallenges = [];
+        let challengeInRoundIndex = 0;
+        let sunPosition = null;
+        let draggedItemId = null;
+        let activeSelectedLetter = null;
+
+        // Estado do Cronômetro
+        let timerEnabled = true;
+        let baseTimeInSeconds = 600; // Padrão: 10 Minutos
+        let timeRemaining = baseTimeInSeconds;
+        let countdownInterval = null;
+
+        // --- UTILITÁRIOS ---
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Mapeamento dinâmico de coordenadas físicas conforme a posição astronômica (Sol)
+        function getPhysicalZoneForLogical(logicalPos, sunsPosition) {
+            const map = {
+                right:  { LESTE: 'right', OESTE: 'left',  NORTE: 'top',    SUL: 'bottom' },
+                left:   { LESTE: 'left',  OESTE: 'right', NORTE: 'bottom', SUL: 'top' },
+                top:    { LESTE: 'top',   OESTE: 'bottom',NORTE: 'left',   SUL: 'right' },
+                bottom: { LESTE: 'bottom',OESTE: 'top',   NORTE: 'right',  SUL: 'left' }
+            };
+            return map[sunsPosition][logicalPos];
+        }
+
+        function getLettersForRound() {
+            let availableLetters = ALPHABET.filter(l => !usedLetters.has(l));
+            if (availableLetters.length < 4) {
+                usedLetters.clear();
+                availableLetters = [...ALPHABET];
+            }
+            return shuffle(availableLetters).slice(0, 4);
+        }
+
+        // --- CONTROLE DE CRONÔMETRO ---
+        function updateTimerUI() {
+            if (!timerEnabled) {
+                timerPanel.style.display = 'none';
+                return;
+            }
+            timerPanel.style.display = 'flex';
+            
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Tratamento visual de tempo quase acabando (últimos 15 segundos)
+            if (timeRemaining <= 15) {
+                timerPanel.classList.add('critical');
+            } else {
+                timerPanel.classList.remove('critical');
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            if (!timerEnabled) return;
+            
+            updateTimerUI();
+            
+            countdownInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerUI();
+                
+                // Sons de tick-tock nos momentos finais para gamificação
+                if (timeRemaining <= 10 && timeRemaining > 0) {
+                    playSound('tick');
+                }
+                
+                // Tempo Esgotado
+                if (timeRemaining <= 0) {
+                    stopTimer();
+                    playSound('timeout');
+                    timeoutModal.classList.add('active');
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        // --- FLUXO DE RODADAS ---
+        function setupRound() {
+            challengeInRoundIndex = 0;
+            draggedItemId = null;
+            activeSelectedLetter = null;
+            feedbackEl.textContent = '';
+            feedbackEl.className = '';
+            itemPen.style.opacity = '1';
+            itemPen.style.pointerEvents = 'auto';
+            itemPen.innerHTML = '';
+            
+            // Limpa as zonas
+            dropZones.forEach(zone => {
+                zone.className = 'drop-zone';
+                if (zone.firstChild) zone.removeChild(zone.firstChild);
+            });
+
+            // Sorteia posição do sol nas extremidades do mapa
+            const sunPositions = [
+                { id: 'right', top: '50%', left: 'calc(100% - 30px)' },
+                { id: 'left', top: '50%', left: '30px' },
+                { id: 'top', top: '30px', left: '50%' },
+                { id: 'bottom', top: 'calc(100% - 30px)', left: '50%' }
+            ];
+            const newSunPosData = sunPositions[Math.floor(Math.random() * sunPositions.length)];
+            sunPosition = newSunPosData.id;
+            sunEl.style.top = newSunPosData.top;
+            sunEl.style.left = newSunPosData.left;
+            sunEl.style.transform = 'translate(-50%, -50%)';
+
+            // Monta os desafios lógicos da vez
+            const currentLetters = getLettersForRound();
+            const logicalPositions = shuffle(['NORTE', 'SUL', 'LESTE', 'OESTE']);
+            
+            roundChallenges = currentLetters.map((letter, index) => {
+                usedLetters.add(letter);
+                return {
+                    letter: letter,
+                    logicalPos: logicalPositions[index]
+                };
+            });
+            shuffle(roundChallenges);
+
+            // Cria elementos visuais para as letras
+            shuffle([...currentLetters]).forEach(letter => {
+                const letterDiv = document.createElement('div');
+                letterDiv.id = letter;
+                const logicalPos = roundChallenges.find(c => c.letter === letter).logicalPos;
+                letterDiv.className = `letter ${logicalPositionToColorClass[logicalPos]} pop-animation`;
+                letterDiv.draggable = true;
+                letterDiv.textContent = letter;
+                
+                // Evento de Clique direto para Mobile / Acessibilidade
+                letterDiv.addEventListener('click', (e) => handleLetterSelect(e, letterDiv));
+                
+                itemPen.appendChild(letterDiv);
+            });
+            
+            controlButton.style.display = 'none';
+            generateChallenge();
+            setupDragDropListeners();
+        }
+
+        // Exibe instrução ativa de forma amigável
+        function generateChallenge() {
+            if (challengeInRoundIndex >= roundChallenges.length) return;
+            const challenge = roundChallenges[challengeInRoundIndex];
+            const positionName = logicalPositionToName[challenge.logicalPos];
+            instructionEl.innerHTML = `Coloque a letra&nbsp;<strong style="color:var(--accent-orange); font-size:1.15rem">${challenge.letter}</strong>&nbsp;${positionName}.`;
+        }
+
+        // Reinicia a pontuação geral e tempo
+        function resetGame() {
+            stopTimer();
+            score = 0;
+            usedLetters.clear();
+            sunPosition = null;
+            scoreEl.textContent = score;
+            controlButton.classList.remove('next-round');
+            timeRemaining = baseTimeInSeconds;
+            
+            setupRound();
+            startTimer();
+        }
+
+        // Avança na partida
+        function nextRound() {
+            playSound('tap');
+            if (score >= MAX_SCORE) {
+                stopTimer();
+                playSound('victory');
+                instructionEl.innerHTML = '👑 Parabéns! Você dominou os pontos cardeais!';
+                feedbackEl.innerHTML = '🏆 Vitória Completa! Nota 10! 🎉';
+                controlButton.textContent = 'Jogar Novamente';
+                controlButton.onclick = resetGame;
+                itemPen.style.opacity = '0';
+                itemPen.style.pointerEvents = 'none';
+            } else {
+                controlButton.classList.remove('next-round');
+                setupRound();
+                // O cronômetro continua rodando direto para manter a consistência da partida de 10 rodadas!
+            }
+        }
+
+        // --- SISTEMA DE SELEÇÃO E TOQUE (Acessibilidade) ---
+        function handleLetterSelect(e, element) {
+            e.stopPropagation();
+            if (element.classList.contains('placed')) return;
+            playSound('tap');
+
+            // Se já estava selecionado, cancela seleção
+            if (activeSelectedLetter === element) {
+                element.classList.remove('selected');
+                activeSelectedLetter = null;
+                draggedItemId = null;
+                return;
+            }
+
+            // Remove seleção prévia de outras letras
+            document.querySelectorAll('.letter').forEach(l => l.classList.remove('selected'));
+
+            activeSelectedLetter = element;
+            draggedItemId = element.id;
+            element.classList.add('selected');
+        }
+
+        // Limpa letras selecionadas se clicar fora
+        document.addEventListener('click', () => {
+            if (activeSelectedLetter) {
+                activeSelectedLetter.classList.remove('selected');
+                activeSelectedLetter = null;
+                draggedItemId = null;
+            }
+        });
+
+        // --- SISTEMA DRAG & DROP (Nativo Desktop) ---
+        function handleDragStart(e) {
+            if (e.target.classList.contains('letter')) {
+                if (activeSelectedLetter) {
+                    activeSelectedLetter.classList.remove('selected');
+                    activeSelectedLetter = null;
+                }
+                draggedItemId = e.target.id;
+                setTimeout(() => { e.target.style.opacity = '0.5'; }, 0);
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (e.target.classList.contains('letter')) {
+                e.target.style.opacity = '1';
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.drop-zone');
+            if (dropZone && !dropZone.firstChild) {
+                dropZone.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const dropZone = e.target.closest('.drop-zone');
+            if (dropZone) dropZone.classList.remove('drag-over');
+        }
+
+        // --- SISTEMA DE VALIDAÇÃO DE JOGADA ---
+        function executePlacement(zoneElement, letterElement) {
+            playSound('correct');
+            feedbackEl.textContent = 'Muito Bem! 🚀';
+            feedbackEl.className = 'feedback-correct';
+            
+            // Proposta pedagógica avançada: Recompensa de tempo ao acertar!
+            if (timerEnabled) {
+                timeRemaining += 5; // Adiciona +5s de recompensa
+                updateTimerUI();
+            }
+
+            // Posiciona a letra dentro da zona
+            zoneElement.appendChild(letterElement);
+            letterElement.classList.add('placed');
+            letterElement.classList.remove('selected');
+            
+            // Adiciona etiqueta visual da direção no elemento colocado
+            const challenge = roundChallenges[challengeInRoundIndex];
+            letterElement.setAttribute('data-dir', challenge.logicalPos);
+            
+            activeSelectedLetter = null;
+            draggedItemId = null;
+            challengeInRoundIndex++;
+
+            if (challengeInRoundIndex >= roundChallenges.length) {
+                // Fim de rodada
+                score++;
+                scoreEl.textContent = score;
+                feedbackEl.textContent = 'Arrasou! Rodada Completa! ✨';
+                controlButton.textContent = 'Avançar';
+                controlButton.classList.add('next-round');
+                controlButton.onclick = nextRound;
+                controlButton.style.display = 'inline-block';
+                instructionEl.innerHTML = '🎉 Rodada concluída com sucesso!';
+            } else {
+                // Próxima letra da rodada ativa
+                setTimeout(() => {
+                    feedbackEl.textContent = '';
+                    feedbackEl.className = '';
+                    generateChallenge();
+                }, 1000);
+            }
+        }
+
+        function handleIncorrectPlay(targetZone) {
+            playSound('incorrect');
+            feedbackEl.textContent = 'Opa, direção errada! Tente novamente 🤔';
+            feedbackEl.className = 'feedback-error';
+            
+            // Animação de tremor
+            targetZone.classList.add('shake');
+            if (activeSelectedLetter) {
+                activeSelectedLetter.classList.add('shake');
+                activeSelectedLetter.classList.remove('selected');
+                activeSelectedLetter = null;
+                draggedItemId = null;
+            }
+            
+            setTimeout(() => {
+                targetZone.classList.remove('shake');
+                document.querySelectorAll('.letter').forEach(l => l.classList.remove('shake'));
+            }, 500);
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const droppedZone = e.target.closest('.drop-zone');
+            if (!droppedZone || droppedZone.firstChild) return;
+
+            droppedZone.classList.remove('drag-over');
+            validatePlay(droppedZone);
+        }
+
+        function handleZoneClick(e) {
+            e.stopPropagation();
+            const zone = e.currentTarget;
+            if (zone.firstChild) return;
+
+            if (draggedItemId) {
+                validatePlay(zone);
+            }
+        }
+
+        function validatePlay(targetZone) {
+            const currentChallenge = roundChallenges[challengeInRoundIndex];
+            const correctPhysicalZoneId = getPhysicalZoneForLogical(currentChallenge.logicalPos, sunPosition);
+            const activeLetterElement = document.getElementById(draggedItemId);
+
+            if (draggedItemId === currentChallenge.letter && targetZone.id === correctPhysicalZoneId) {
+                executePlacement(targetZone, activeLetterElement);
+            } else {
+                handleIncorrectPlay(targetZone);
+            }
+        }
+
+        function setupDragDropListeners() {
+            const letters = document.querySelectorAll('.letter');
+            letters.forEach(letter => {
+                letter.addEventListener('dragstart', handleDragStart);
+                letter.addEventListener('dragend', handleDragEnd);
+            });
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+                zone.onclick = handleZoneClick;
+            });
+        }
+
+        // --- GERENCIAMENTO DE AUDIO (BOTÃO RÁPIDO) ---
+        function updateAudioButtonUI() {
+            if (soundEnabled) {
+                soundIcon.innerHTML = `
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                `;
+            } else {
+                soundIcon.innerHTML = `
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                `;
+            }
+        }
+
+        soundBtn.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggleSwitch.checked = soundEnabled;
+            updateAudioButtonUI();
+            if (soundEnabled) playSound('tap');
+        });
+
+        // --- SISTEMA DE CONFIGURAÇÃO DE TEMPO ---
+        settingsBtn.addEventListener('click', () => {
+            playSound('tap');
+            stopTimer(); // Pausa temporariamente para ajustar
+            
+            // Carrega valores atuais no modal
+            timerToggleSwitch.checked = timerEnabled;
+            timerConfigOptions.style.display = timerEnabled ? 'block' : 'none';
+            soundToggleSwitch.checked = soundEnabled;
+            
+            settingsModal.classList.add('active');
+        });
+
+        timerToggleSwitch.addEventListener('change', () => {
+            timerConfigOptions.style.display = timerToggleSwitch.checked ? 'block' : 'none';
+        });
+
+        // Eventos nos botões de tempo sugeridos
+        const timeButtons = document.querySelectorAll('.time-btn');
+        timeButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                playSound('tap');
+                timeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                if (btn.dataset.time === 'custom') {
+                    customTimeArea.style.display = 'flex';
+                } else {
+                    customTimeArea.style.display = 'none';
+                }
+            });
+        });
+
+        settingsSaveBtn.addEventListener('click', () => {
+            playSound('tap');
+            
+            timerEnabled = timerToggleSwitch.checked;
+            soundEnabled = soundToggleSwitch.checked;
+            updateAudioButtonUI();
+
+            if (timerEnabled) {
+                const activeTimeBtn = document.querySelector('.time-btn.active');
+                if (activeTimeBtn.dataset.time === 'custom') {
+                    const customMin = Math.max(1, parseInt(customMinutesInput.value) || 1);
+                    baseTimeInSeconds = customMin * 60;
+                } else {
+                    baseTimeInSeconds = parseInt(activeTimeBtn.dataset.time);
+                }
+            }
+
+            settingsModal.classList.remove('active');
+            resetGame(); // Reinicia com as novas preferências
+        });
+
+        // --- MODAL FIM DE TEMPO (AÇÕES) ---
+        btnTimeoutRestart.onclick = () => {
+            timeoutModal.classList.remove('active');
+            resetGame();
+        };
+
+        btnTimeoutExtend.onclick = () => {
+            playSound('tap');
+            timeoutModal.classList.remove('active');
+            timeRemaining = 30; // Mais 30 segundos salvadores
+            startTimer();
+        };
+
+        // Eventos dos modais gerais
+        helpBtn.onclick = () => {
+            playSound('tap');
+            stopTimer();
+            helpModal.classList.add('active');
+        };
+
+        modalCloseBtn.onclick = () => {
+            playSound('tap');
+            helpModal.classList.remove('active');
+            startTimer();
+        };
+
+        restartBtn.onclick = resetGame;
+
+        // --- INICIALIZAÇÃO ---
+        window.onload = () => {
+            resetGame();
+            setTimeout(() => {
+                stopTimer(); // Pausa o tempo enquanto lê ajuda
+                helpModal.classList.add('active');
+            }, 500);
+        };
+    </script>
+</body>
+</html>
